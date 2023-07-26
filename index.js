@@ -9,6 +9,7 @@ const cartRoute = require('./routes/cart')
 const orderRoute = require('./routes/order')
 const stripeRoute = require('./routes/stripe')
 const cors = require('cors')
+// const env = require("dotenv").config({ path: "./.env" });
 
 dotenv.config()
 
