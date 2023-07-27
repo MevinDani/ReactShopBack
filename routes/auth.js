@@ -33,6 +33,7 @@ router.post('/register', async (req, res) => {
 
 // LOGIN
 router.post('/login', async (req, res) => {
+    console.log(req.body)
     const { username, password } = req.body
     if (!username || !password) {
         return res.status(400).json({
