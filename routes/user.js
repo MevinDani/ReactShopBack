@@ -1,21 +1,51 @@
 const router = require('express').Router()
 const User = require('../models/user');
+const cloudinary = require('../utils/cloudinary');
 const { verifyToken, verifyTokenAndAuth, verifyTokenAndAdmin } = require('./verify')
 
 
 // update user
 router.put('/:id', verifyTokenAndAuth, async (req, res) => {
-    if (req.body.password) {
-        req.body.password = CryptoJS.AES.encrypt(password, process.env.PASS_SECRET).toString();
-    }
+    console.log(req)
+    const { username, email, profilePic } = req.body.data
+    console.log(username, email, profilePic)
+
     try {
-        const updatedUser = await User.findByIdAndUpdate(req.params.id, {
-            $set: req.body
-        }, { new: true })
-        res.status(200).json(updatedUser)
+        if (profilePic) {
+            const uploadRes = await cloudinary.uploader.upload(profilePic, {
+                upload_preset: "react-shop"
+            })
+            // console.log(uploadRes)
+            if (uploadRes) {
+                const user = await User.findByIdAndUpdate(req.params.id, {
+                    $set: {
+                        username,
+                        email,
+                        profilePic: uploadRes.url
+                    }
+                }, { new: true })
+                res.status(200).json(user)
+            }
+        } else {
+            const user = await User.findByIdAndUpdate(req.params.id, {
+                $set: {
+                    username,
+                    email
+                }
+            }, { new: true })
+            res.status(200).json(user)
+        }
     } catch (error) {
         res.status(500).json(error)
     }
+    // try {
+    //     const updatedUser = await User.findByIdAndUpdate(req.params.id, {
+    //         $set: req.body
+    //     }, { new: true })
+    //     res.status(200).json(updatedUser)
+    // } catch (error) {
+    //     res.status(500).json(error)
+    // }
 
 })
 
