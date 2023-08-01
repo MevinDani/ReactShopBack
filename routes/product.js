@@ -58,6 +58,8 @@ router.get('/', async (req, res) => {
         let products;
         if (qNew) {
             products = await Product.find().sort({ createdAt: -1 }).limit(5)
+        } else if (qCat === 'all') {
+            products = await Product.find()
         } else if (qCat) {
             products = await Product.find({
                 categories: {

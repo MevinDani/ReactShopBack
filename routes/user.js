@@ -24,7 +24,8 @@ router.put('/:id', verifyTokenAndAuth, async (req, res) => {
                         profilePic: uploadRes.url
                     }
                 }, { new: true })
-                res.status(200).json(user)
+                const { password, ...others } = user._doc
+                res.status(200).json(others)
             }
         } else {
             const user = await User.findByIdAndUpdate(req.params.id, {
@@ -33,7 +34,8 @@ router.put('/:id', verifyTokenAndAuth, async (req, res) => {
                     email
                 }
             }, { new: true })
-            res.status(200).json(user)
+            const { password, ...others } = user._doc
+            res.status(200).json(others)
         }
     } catch (error) {
         res.status(500).json(error)

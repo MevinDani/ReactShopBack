@@ -13,21 +13,31 @@ router.post('/register', async (req, res) => {
         })
     }
 
-    const newUser = new User({
-        username: req.body.username,
-        email: req.body.email,
-        password: CryptoJS.AES.encrypt(password, process.env.PASS_SECRET).toString()
-    });
+    const existUser = await User.find({ username, email })
 
-    try {
-        const savedUser = await newUser.save()
-        res.status(201).json(savedUser)
-    } catch (error) {
-        console.log(error)
-        res.status(500).json({
-            message: "user with same username or email exists"
-        })
+    console.log(existUser, "exist")
+
+    if (!existUser) {
+        res.status(400).json({ message: "User Already exists, change username or email" })
+    } else {
+        const newUser = new User({
+            username: req.body.username,
+            email: req.body.email,
+            password: CryptoJS.AES.encrypt(password, process.env.PASS_SECRET).toString()
+        });
+        try {
+            const savedUser = await newUser.save()
+            const { password, ...others } = savedUser._doc
+            res.status(200).json(others)
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({
+                message: "user with same username or email exists"
+            })
+        }
     }
+
+
 
 })
 
