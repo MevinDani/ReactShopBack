@@ -1,7 +1,14 @@
 const router = require('express').Router()
+const Order = require('../models/order');
 const User = require('../models/user');
 const cloudinary = require('../utils/cloudinary');
+const dotenv = require('dotenv')
 const { verifyToken, verifyTokenAndAuth, verifyTokenAndAdmin } = require('./verify')
+dotenv.config()
+
+
+const stripe = require('stripe')(process.env.STRIPE_KEY);
+
 
 
 // update user
@@ -108,5 +115,29 @@ router.get('/stats', verifyTokenAndAdmin, async (req, res) => {
         res.status(500).json(error)
     }
 })
+
+router.get('/orders/:id', async (req, res) => {
+    let data = {}
+    console.log("userOrderreq")
+    try {
+        const orders = await Order.find({ userId: req.params.id })
+        // console.log(orders)
+        orders.map((item) => {
+            console.log(item.products, "mapItem")
+            item.products.map(async (i) => {
+                // console.log(i.price, "mapI")
+                const product = await stripe.products.retrieve(
+                    i.price.product
+                );
+                console.log(product, "strpproduct")
+            })
+        })
+        res.status(200).json(orders)
+    } catch (error) {
+        res.status(500).json(error)
+    }
+})
+
+
 
 module.exports = router

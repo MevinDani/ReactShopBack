@@ -13,10 +13,12 @@ const stripe = require('stripe')(process.env.STRIPE_KEY);
 // chooloo
 router.post('/create-checkout-session', async (req, res) => {
 
+    // console.log(req.body.cartItems)
+
     const customer = await stripe.customers.create({
         metadata: {
             userId: req.body.userId,
-            cart: JSON.stringify(req.body.cartItems),
+            // cart: JSON.stringify(req.body.cartItems),
         }
     })
 
@@ -24,6 +26,7 @@ router.post('/create-checkout-session', async (req, res) => {
 
 
     const line_items = req.body.cartItems.map((item) => {
+        // console.log(item)
         return {
             price_data: {
                 currency: 'usd',
@@ -48,19 +51,21 @@ router.post('/create-checkout-session', async (req, res) => {
         success_url: `${process.env.CLIENT_URL}/checkout_success`,
         cancel_url: `${process.env.CLIENT_URL}/cart`,
     })
-    res.send({ url: session.url })
+    // console.log("ltms", line_items)
+    // console.log("sess", session)
+    res.send({ url: session.url, session })
 })
 
 // createOrderMongo
-const createOrder = async (customer, data) => {
-    const Items = JSON.parse(customer.metadata.cart)
-    console.log(Items)
+const createOrder = async (customer, data, lineItems) => {
+    // const Items = JSON.parse(customer.metadata.cart)
+    // console.log(Items)
 
     const newOrder = new Order({
         userId: customer.metadata.userId,
         customerId: data.customer,
         paymentIntentId: data.payment_intent,
-        products: Items,
+        products: lineItems.data,
         subtotal: data.amount_subtotal,
         total: data.amount_total,
         shipping: data.customer_details,
@@ -73,6 +78,11 @@ const createOrder = async (customer, data) => {
     } catch (error) {
         console.log(error)
     }
+
+    const product = await stripe.products.retrieve(
+        'prod_OOv7QDl6D2417F'
+    );
+    console.log(product, "strpproduct")
 }
 
 // webhook
@@ -111,7 +121,14 @@ router.post('/webhook',
         if (eventType === 'checkout.session.completed') {
             stripe.customers.retrieve(data.customer)
                 .then((customer) => {
-                    createOrder(customer, data)
+                    stripe.checkout.sessions.listLineItems(
+                        data.id,
+                        {},
+                        function (err, lineItems) {
+                            console.log('lineitems', lineItems.data[0].price, "data", data)
+                            createOrder(customer, data, lineItems)
+                        }
+                    )
                 })
                 .catch((err) => console.log(err))
         }
@@ -126,45 +143,45 @@ router.post('/webhook',
         // }
 
         // Return a 200 response to acknowledge receipt of the event
-        response.send().end();
+        res.send().end();
     });
 
 
-router.get('/config', (req, res) => {
-    res.status(200).json({
-        publishableKey: process.env.STRIPE_PKEY,
-    })
-})
+// router.get('/config', (req, res) => {
+//     res.status(200).json({
+//         publishableKey: process.env.STRIPE_PKEY,
+//     })
+// })
 
-router.post('/create-payment-intent', async (req, res) => {
-    try {
-        const paymentIntent = await stripe.paymentIntents.create({
-            currency: "EUR",
-            amount: 1999,
-            automatic_payment_methods: { enabled: true },
-        });
-        console.log(paymentIntent)
-        res.send({ clientSecret: paymentIntent.client_secret })
-    } catch (error) {
-        console.log(error)
-        res.status(500).json(error)
-    }
-})
+// router.post('/create-payment-intent', async (req, res) => {
+//     try {
+//         const paymentIntent = await stripe.paymentIntents.create({
+//             currency: "EUR",
+//             amount: 1999,
+//             automatic_payment_methods: { enabled: true },
+//         });
+//         console.log(paymentIntent)
+//         res.send({ clientSecret: paymentIntent.client_secret })
+//     } catch (error) {
+//         console.log(error)
+//         res.status(500).json(error)
+//     }
+// })
 
-router.post('/payment', (req, res) => {
-    console.log(req)
-    stripe.charges.create({
-        source: req.body.tokenId,
-        amount: req.body.amount,
-        currency: "usd"
-    }, (stripeErr, stripeRes) => {
-        if (stripeErr) {
-            res.status(500).json(stripeErr)
-            console.log(stripeErr)
-        } else {
-            res.status(200).json(stripeRes)
-        }
-    })
-})
+// router.post('/payment', (req, res) => {
+//     console.log(req)
+//     stripe.charges.create({
+//         source: req.body.tokenId,
+//         amount: req.body.amount,
+//         currency: "usd"
+//     }, (stripeErr, stripeRes) => {
+//         if (stripeErr) {
+//             res.status(500).json(stripeErr)
+//             console.log(stripeErr)
+//         } else {
+//             res.status(200).json(stripeRes)
+//         }
+//     })
+// })
 
 module.exports = router
