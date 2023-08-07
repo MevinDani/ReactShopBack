@@ -26,7 +26,7 @@ router.post('/create-checkout-session', async (req, res) => {
 
 
     const line_items = req.body.cartItems.map((item) => {
-        // console.log(item)
+        console.log("items", item)
         return {
             price_data: {
                 currency: 'usd',
@@ -79,10 +79,10 @@ const createOrder = async (customer, data, lineItems) => {
         console.log(error)
     }
 
-    const product = await stripe.products.retrieve(
-        'prod_OOv7QDl6D2417F'
-    );
-    console.log(product, "strpproduct")
+    // const product = await stripe.products.retrieve(
+    //     'prod_OOv7QDl6D2417F'
+    // );
+    // console.log(product, "strpproduct")
 }
 
 // webhook
@@ -94,6 +94,7 @@ let endpointSecret;
 router.post('/webhook',
     express.raw({ type: 'application/json' }),
     (req, res) => {
+        console.log("webhk", req.body.data.object)
         const sig = req.headers['stripe-signature'];
 
         let data;

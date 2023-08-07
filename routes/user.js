@@ -117,25 +117,34 @@ router.get('/stats', verifyTokenAndAdmin, async (req, res) => {
 })
 
 router.get('/orders/:id', async (req, res) => {
-    let data = {}
-    console.log("userOrderreq")
+    let stripeData = []
+    let fullData = []
+    let fullOrder = []
+    let product;
+    // console.log("userOrderreq")
     try {
         const orders = await Order.find({ userId: req.params.id })
-        // console.log(orders)
-        orders.map((item) => {
-            console.log(item.products, "mapItem")
-            item.products.map(async (i) => {
-                // console.log(i.price, "mapI")
-                const product = await stripe.products.retrieve(
-                    i.price.product
-                );
-                console.log(product, "strpproduct")
-            })
-        })
-        res.status(200).json(orders)
+
+        for (const item of orders) {
+            // console.log("item", item)
+            fullOrder.push(item)
+            for (const i of item.products) {
+                fullData.push(i)
+                // console.log("i", i)
+                product = await stripe.products.retrieve(i.price.product);
+                stripeData.push(product)
+            }
+        }
+        res.status(200).json({ stripeData, fullData, fullOrder, orders })
     } catch (error) {
+        console.log(error)
         res.status(500).json(error)
     }
+
+    // const paymentIntent = await stripe.paymentIntents.retrieve(
+    //     'pi_3NcMY4SAAbSbcDjO0amzymOq'
+    // );
+    // console.log("paymentIntent", paymentIntent)
 })
 
 
