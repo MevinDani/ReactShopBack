@@ -1,9 +1,9 @@
 const router = require('express').Router()
-const Order = require('../models/order');
-const User = require('../models/user');
+const { Order } = require('../models/order');
+const { User } = require('../models/user');
 const cloudinary = require('../utils/cloudinary');
 const dotenv = require('dotenv')
-const { verifyToken, verifyTokenAndAuth, verifyTokenAndAdmin } = require('./verify')
+const { verifyToken, verifyTokenAndAuth, verifyTokenAndAdmin, verifyTokenAndAuthForReview } = require('./verify')
 dotenv.config()
 
 
@@ -145,6 +145,18 @@ router.get('/orders/:id', async (req, res) => {
     //     'pi_3NcMY4SAAbSbcDjO0amzymOq'
     // );
     // console.log("paymentIntent", paymentIntent)
+})
+
+// get users profilePics
+router.get('/profilePic/:id/:userId', verifyTokenAndAuthForReview, async (req, res) => {
+    const { id } = req.params
+    try {
+        const user = await User.findById(id)
+        res.status(200).json(user.profilePic)
+    } catch (error) {
+        console.log(error)
+        res.status(500).json(error)
+    }
 })
 
 

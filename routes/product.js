@@ -1,6 +1,7 @@
 const router = require('express').Router()
-const Product = require('../models/product')
-const { verifyToken, verifyTokenAndAuth, verifyTokenAndAdmin } = require('./verify')
+const { Product, Review } = require('../models/product')
+const { verifyToken, verifyTokenAndAuth, verifyTokenAndAdmin, verifyTokenAndAuthForReview } = require('./verify')
+
 
 
 // create product
@@ -71,6 +72,43 @@ router.get('/', async (req, res) => {
         }
         res.status(200).json(products)
     } catch (error) {
+        res.status(500).json(error)
+    }
+})
+
+// add review to a product
+router.post('/:productId/review/:userId', verifyTokenAndAuthForReview, async (req, res) => {
+    const { productId } = req.params
+    const { content, rating, userId, name } = req.body
+
+    try {
+        const review = new Review({
+            content,
+            rating,
+            productId,
+            userId,
+            name
+        })
+
+        await review.save()
+
+        const product = await Product.findByIdAndUpdate(productId, { $push: { reviews: review._id } }, { new: true })
+        res.status(200).json({ review, product })
+    } catch (error) {
+        console.error('Failed to add review', error);
+        res.status(500).json({ error: 'Failed to add review' });
+    }
+})
+
+// get product review
+router.get('/:productId/reviews', async (req, res) => {
+    const { productId } = req.params
+    try {
+        const product = await Product.findById(productId).populate('reviews')
+        const reviews = product.reviews
+        res.status(200).json(reviews)
+    } catch (error) {
+        console.log(error)
         res.status(500).json(error)
     }
 })

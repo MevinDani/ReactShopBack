@@ -12,4 +12,8 @@ const OrderSchema = new mongoose.Schema({
     payment_status: { type: String, required: true },
 }, { timestamps: true })
 
-module.exports = mongoose.model('Order', OrderSchema)
+const Order = mongoose.model('Order', OrderSchema)
+
+module.exports = {
+    Order
+}

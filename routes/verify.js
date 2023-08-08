@@ -12,7 +12,7 @@ const verifyToken = (req, res, next) => {
             next()
         })
     } else {
-        return res.status(401).json("user not authenticated")
+        return res.status(401).json("user not authenticated,verifyToken")
     }
 }
 
@@ -21,7 +21,17 @@ const verifyTokenAndAuth = (req, res, next) => {
         if (req.user.id === req.params.id || req.user.isAdmin) {
             next()
         } else {
-            return res.status(401).json("user not authenticated")
+            return res.status(401).json("user not authenticated,verifyTokenAndAuth")
+        }
+    })
+}
+
+const verifyTokenAndAuthForReview = (req, res, next) => {
+    verifyToken(req, res, () => {
+        if (req.user.id === req.params.userId || req.user.isAdmin) {
+            next()
+        } else {
+            return res.status(401).json("user not authenticated,verifyTokenAndAuthForReview")
         }
     })
 }
@@ -36,4 +46,4 @@ const verifyTokenAndAdmin = (req, res, next) => {
     })
 }
 
-module.exports = { verifyToken, verifyTokenAndAuth, verifyTokenAndAdmin }
+module.exports = { verifyToken, verifyTokenAndAuth, verifyTokenAndAdmin, verifyTokenAndAuthForReview }
