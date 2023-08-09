@@ -1,5 +1,5 @@
 const router = require('express').Router()
-const Order = require('../models/order')
+const { Order } = require('../models/order')
 const { verifyToken, verifyTokenAndAuth, verifyTokenAndAdmin } = require('./verify')
 
 // create order
@@ -51,9 +51,10 @@ router.get('/find/:id', verifyTokenAndAdmin, async (req, res) => {
 // get all carts
 router.get('/', verifyTokenAndAdmin, async (req, res) => {
     try {
-        const order = await Order.find()
+        const order = await Order.find().sort({ _id: -1 })
         res.status(200).json(order)
     } catch (error) {
+        console.log(error)
         res.status(500).json(error)
     }
 })
@@ -83,6 +84,28 @@ router.get('/income', verifyTokenAndAdmin, async (req, res) => {
             }
         ])
         res.status(200).json(income)
+    } catch (error) {
+        res.status(500).json(error)
+    }
+})
+
+router.get('/totalIncome', verifyTokenAndAdmin, async (req, res) => {
+    try {
+        const income = await Order.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$total" }
+                }
+            }
+        ]);
+
+        if (income.length > 0) {
+            const totalIncome = income[0].total;
+            res.status(200).json({ totalIncome });
+        } else {
+            res.status(200).json({ totalIncome: 0 });
+        }
     } catch (error) {
         res.status(500).json(error)
     }

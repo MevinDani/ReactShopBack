@@ -1,15 +1,35 @@
 const router = require('express').Router()
 const { Product, Review } = require('../models/product')
+const cloudinary = require('../utils/cloudinary')
 const { verifyToken, verifyTokenAndAuth, verifyTokenAndAdmin, verifyTokenAndAuthForReview } = require('./verify')
 
 
 
 // create product
-router.post('/', verifyTokenAndAdmin, async (req, res) => {
-    const newProduct = new Product(req.body)
+router.post('/create', verifyTokenAndAdmin, async (req, res) => {
     try {
-        const savedProduct = await newProduct.save()
-        res.status(200).json(savedProduct)
+        const uploadResponse = await cloudinary.uploader.upload(
+            req.body.productImg,
+            {
+                upload_preset: "react-shop"
+            }
+        )
+        if (uploadResponse) {
+            const newProduct = new Product({
+                title: req.body.product.name,
+                desc: req.body.product.desc,
+                price: req.body.product.price,
+                inStock: req.body.product.inStock,
+                img: uploadResponse.url,
+                categories: req.body.product.category,
+            })
+            try {
+                const savedProduct = await newProduct.save()
+                res.status(200).json(savedProduct)
+            } catch (error) {
+                res.status(500).json(error)
+            }
+        }
     } catch (error) {
         res.status(500).json(error)
     }
@@ -17,24 +37,74 @@ router.post('/', verifyTokenAndAdmin, async (req, res) => {
 
 // update product
 router.put('/:id', verifyTokenAndAdmin, async (req, res) => {
-    try {
-        const updatedProduct = await Product.findByIdAndUpdate(req.params.id,
-            {
-                $set: req.body
-            },
-            { new: true }
-        )
-        res.status(201).json(updatedProduct)
-    } catch (error) {
-        res.status(500).json(error)
+    if (req.body.productImg) {
+        try {
+            const destroyResponse = await cloudinary.uploader.destroy(
+                req.body.product.img
+            )
+
+            if (destroyResponse) {
+                const uploadResponse = await cloudinary.uploader.upload(
+                    req.body.productImg,
+                    {
+                        upload_preset: "react-shop"
+                    }
+                )
+
+                if (uploadResponse) {
+                    const updatedProduct = await Product.findByIdAndUpdate(
+                        req.params.id,
+                        {
+                            $set: {
+                                ...req.body.product,
+                                img: uploadResponse.url
+                            }
+                        },
+                        { new: true }
+                    )
+                    res.status(200).json(updatedProduct)
+                }
+            }
+
+        } catch (error) {
+            res.status(500).json(error)
+        }
+    } else {
+        try {
+            const updatedProduct = await Product.findByIdAndUpdate(req.params.id,
+                {
+                    $set: req.body.product
+                },
+                { new: true }
+            )
+            res.status(201).json(updatedProduct)
+        } catch (error) {
+            res.status(500).json(error)
+        }
     }
 })
 
 // deleteProduct
 router.delete('/:id', verifyTokenAndAdmin, async (req, res) => {
     try {
-        await Product.findByIdAndDelete(req.params.id)
-        res.status(201).json('Product deleted')
+        const product = await Product.findById(req.params.id)
+
+        if (!product) return res.status(404).json("Product not found")
+
+        if (product.img) {
+            const destroyResponse = await cloudinary.uploader.destroy(
+                product.img
+            )
+
+            if (destroyResponse) {
+                const deletedProduct = await Product.findByIdAndDelete(req.params.id)
+                res.status(200).json(deletedProduct)
+            }
+        } else {
+            res.status(500).json('cloudinary error in delete pic')
+        }
+        // await Product.findByIdAndDelete(req.params.id)
+        // res.status(201).json('Product deleted')
     } catch (error) {
         res.status(500).json(error)
     }
@@ -68,7 +138,7 @@ router.get('/', async (req, res) => {
                 }
             })
         } else {
-            products = await Product.find()
+            products = await Product.find().sort({ _id: -1 })
         }
         res.status(200).json(products)
     } catch (error) {
