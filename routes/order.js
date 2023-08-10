@@ -41,8 +41,12 @@ router.delete('/:id', verifyTokenAndAdmin, async (req, res) => {
 // get user order
 router.get('/find/:id', verifyTokenAndAdmin, async (req, res) => {
     try {
-        const order = await Order.find({ userId: req.params.id })
-        res.status(200).json(order)
+        const order = await Order.findById(req.params.id)
+        if (req.user.isAdmin) {
+            res.status(200).json(order)
+        } else {
+            return res.status(403).json("Access denied")
+        }
     } catch (error) {
         res.status(500).json(error)
     }

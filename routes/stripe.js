@@ -1,7 +1,7 @@
 const router = require('express').Router()
 const dotenv = require('dotenv')
 const express = require('express')
-const Order = require('../models/order')
+const { Order } = require('../models/order')
 dotenv.config()
 
 
@@ -45,6 +45,9 @@ router.post('/create-checkout-session', async (req, res) => {
     })
 
     const session = await stripe.checkout.sessions.create({
+        shipping_address_collection: {
+            allowed_countries: ['US', 'CA', 'IN'],
+        },
         customer: customer.id,
         line_items,
         mode: 'payment',
