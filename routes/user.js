@@ -53,8 +53,8 @@ router.put('/:id', verifyTokenAndAuth, async (req, res) => {
 // delete user
 router.delete('/:id', verifyTokenAndAuth, async (req, res) => {
     try {
-        await User.findByIdAndDelete(req.params.id)
-        res.status(201).json('User has been deleted')
+        const deletedUser = await User.findByIdAndDelete(req.params.id)
+        res.status(201).json(deletedUser)
     } catch (error) {
         res.status(500).json(error)
     }
@@ -75,7 +75,7 @@ router.get('/find/:id', verifyTokenAndAdmin, async (req, res) => {
 router.get('/', verifyTokenAndAdmin, async (req, res) => {
     const query = req.query.new
     try {
-        const users = query ? await User.find().sort({ _id: -1 }).limit(5) : await User.find()
+        const users = query ? await User.find().sort({ _id: -1 }).limit(5) : await User.find().sort({ _id: -1 })
         res.status(200).json(users)
     } catch (error) {
         res.status(500).json(error)
@@ -145,6 +145,51 @@ router.get('/profilePic/:id/:userId', verifyTokenAndAuthForReview, async (req, r
     try {
         const user = await User.findById(id)
         res.status(200).json(user.profilePic)
+    } catch (error) {
+        console.log(error)
+        res.status(500).json(error)
+    }
+})
+
+router.put('/order/:id/recieved/:lid', verifyTokenAndAuth, async (req, res) => {
+    // console.log(req.params)
+    try {
+        const user = await User.findById(req.params.id)
+        const order = await Order.find({ userId: req.params.id })
+        let orderId
+        // console.log(order)
+        if (order) {
+            for (o of order) {
+                // console.log("0", o)
+                for (i of o.products) {
+                    // console.log("i", i)
+                    if (req.params.lid == i.id) {
+                        // console.log("insode", req.params.lid, i.id, o._id)
+                        orderId = o._id
+                    }
+                }
+            }
+        }
+        if (orderId) {
+            try {
+                const updateOrder = await Order.findById(orderId);
+
+                if (updateOrder) {
+                    // Update the delivery status
+                    updateOrder.delivery_status = 'delivered'; // Replace with your desired status
+
+                    // Save the updated order
+                    await updateOrder.save();
+
+                    console.log('Order updated:', updateOrder);
+                    res.status(200).json(updateOrder)
+                } else {
+                    console.log('Order not found');
+                }
+            } catch (error) {
+                console.error('Error updating order:', error);
+            }
+        }
     } catch (error) {
         console.log(error)
         res.status(500).json(error)

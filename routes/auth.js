@@ -2,11 +2,13 @@ const router = require('express').Router()
 const { User } = require('../models/user')
 const CryptoJS = require('crypto-js')
 const jwt = require('jsonwebtoken')
+const cloudinary = require('../utils/cloudinary')
 
 // register
 router.post('/register', async (req, res) => {
 
-    const { username, email, password } = req.body
+    const { username, email, password, profilePic } = req.body
+    console.log(req.body)
     if (!username || !email || !password) {
         return res.status(400).json({
             message: "all input fields are required"
@@ -19,7 +21,39 @@ router.post('/register', async (req, res) => {
 
     if (!existUser) {
         res.status(400).json({ message: "User Already exists, change username or email" })
-    } else {
+    } else if (req.body.profilePic) {
+        try {
+            const uploadResponse = await cloudinary.uploader.upload(
+                req.body.profilePic,
+                {
+                    upload_preset: "react-shop"
+                }
+            )
+            if (uploadResponse) {
+                const newUser = new User({
+                    username: req.body.username,
+                    email: req.body.email,
+                    profilePic: uploadResponse.url,
+                    password: CryptoJS.AES.encrypt(password, process.env.PASS_SECRET).toString()
+                });
+                try {
+                    const savedUser = await newUser.save()
+                    const { password, ...others } = savedUser._doc
+                    res.status(200).json(others)
+                } catch (error) {
+                    console.log(error)
+                    res.status(500).json({
+                        message: "error inside upload loop"
+                    })
+                }
+            }
+        } catch (error) {
+            console.log(error)
+            res.status(500).json({
+                message: "error inside upload loop"
+            })
+        }
+    } else if (!req.body.profilePic) {
         const newUser = new User({
             username: req.body.username,
             email: req.body.email,
